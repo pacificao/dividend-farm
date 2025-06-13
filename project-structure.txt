@@ -1,0 +1,44 @@
+.
+├── README.md
+├── app
+│   ├── __init__.py
+│   ├── main.py
+│   └── pages
+├── broker
+│   ├── __init__.py
+│   └── robinhood_api.py
+├── config
+│   ├── __init__.py
+│   └── settings.py
+├── core
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-312.pyc
+│   ├── filters.py
+│   ├── models
+│   │   ├── __init__.py
+│   │   └── trainer.py
+│   ├── robinhood.py
+│   └── screener.py
+├── data
+│   ├── __init__.py
+│   ├── fetcher.py
+│   ├── pipeline
+│   │   ├── __init__.py
+│   │   └── polygon.py
+│   ├── schemas
+│   │   └── __init__.py
+│   └── warehouse
+│       ├── __init__.py
+│       └── duckdb_client.py
+├── logs
+├── project-structure.txt
+├── requirements.txt
+├── run_app.sh
+├── scripts
+│   ├── __init__.py
+│   └── export_to_excel.py
+└── tests
+    └── __init__.py
+
+15 directories, 27 files

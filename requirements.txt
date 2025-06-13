@@ -1,7 +1,21 @@
-streamlit
+# Core
 pandas
+requests
 yfinance
 python-dotenv
+streamlit
+matplotlib>=3.0
+
+# Broker integration
 robin_stocks
-requests
-watchdog
+
+# Optional exports and extensions
+openpyxl
+
+# Future scalability (for Phase 1.5+)
+duckdb
+scikit-learn
+
+# Dev tools
+black
+flake8

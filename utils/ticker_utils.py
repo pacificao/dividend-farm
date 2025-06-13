@@ -1,74 +1,84 @@
-from typing import Dict, Any
+import re
+
+EXCLUDED_SUFFIXES = {
+    "F": ".F",  # Foreign
+    "Y": ".Y",  # ADR
+    "Q": ".Q",  # Bankruptcy
+}
+
+OTC_SUFFIXES = {"F", "Q", "Y", "Z"}  # OTC-style risk indicators
 
 
-def should_filter_ticker(ticker: str, info: Dict[str, Any]) -> bool:
+def is_valid_ticker(ticker: str, exclude_f=True, exclude_y=True, exclude_q=True) -> bool:
     """
-    Determines if a ticker should be excluded based on suffixes and financial data.
-    - 'F': foreign stocks
-    - 'Y': ADRs
-    - 'Q': bankrupt or distressed companies
+    Validates a ticker symbol by structure and optional suffix exclusion.
 
-    Parameters:
-        ticker (str): The stock ticker symbol.
-        info (dict): Financial metadata from yfinance.
+    Args:
+        ticker (str): The ticker symbol.
+        exclude_f (bool): Exclude tickers with .F suffix (foreign).
+        exclude_y (bool): Exclude tickers with .Y suffix (ADR).
+        exclude_q (bool): Exclude tickers with .Q suffix (bankruptcy).
 
     Returns:
-        bool: True if the ticker should be excluded, False otherwise.
+        bool: True if the ticker is structurally valid and not excluded.
     """
-    ticker = ticker.upper()
+    if not isinstance(ticker, str):
+        return False
 
-    if ticker.endswith("F") or (len(ticker) == 5 and ticker.endswith("Y")):
+    ticker = ticker.strip().upper()
+
+    if exclude_f and ticker.endswith(EXCLUDED_SUFFIXES["F"]):
+        return False
+    if exclude_y and ticker.endswith(EXCLUDED_SUFFIXES["Y"]):
+        return False
+    if exclude_q and ticker.endswith(EXCLUDED_SUFFIXES["Q"]):
+        return False
+
+    # Allow up to 5 letters, optionally followed by a period and one letter (e.g., BRK.B)
+    return bool(re.fullmatch(r'^[A-Z]{1,5}(\.[A-Z])?$', ticker))
+
+
+def is_probably_otc_ticker(ticker: str) -> bool:
+    """
+    Heuristically flags tickers that are *likely* OTC or distressed.
+    - Matches 5-letter tickers ending in F, Q, Z, or Y (e.g., SIXGF, CNFRZ).
+
+    Args:
+        ticker (str): The ticker to evaluate.
+
+    Returns:
+        bool: True if the ticker appears to be OTC-style.
+    """
+    ticker = ticker.strip().upper()
+
+    return (
+        len(ticker) == 5 and
+        ticker[-1] in OTC_SUFFIXES and
+        "." not in ticker
+    )
+
+
+def is_otc_or_distressed(ticker_info: dict) -> bool:
+    """
+    Uses metadata from sources like yfinance to determine distress or OTC flags.
+
+    Args:
+        ticker_info (dict): Dictionary with ticker metadata.
+
+    Returns:
+        bool: True if the stock is OTC or appears distressed.
+    """
+    exchange = ticker_info.get("exchange", "").upper()
+    price = ticker_info.get("regularMarketPrice", 0)
+
+    if "OTC" in exchange or "PINK" in exchange:
         return True
 
-    if ticker.endswith("Q"):
-        if info.get("financialCurrency") is None or info.get("regularMarketPrice") is None:
+    try:
+        price = float(price)
+        if price < 1.00:
             return True
-        if info.get("marketCap", 0) <= 0:
-            return True
-        if info.get("quoteType") == "NONE":
-            return True
+    except (ValueError, TypeError):
+        return True
 
     return False
-
-
-def is_tradable_on_robinhood(ticker: str, robinhood_client) -> bool:
-    """
-    Checks if a ticker is available for trading on Robinhood.
-
-    Parameters:
-        ticker (str): The stock ticker symbol.
-        robinhood_client: The authenticated robin_stocks.robinhood client.
-
-    Returns:
-        bool: True if tradable, False if not found or API error occurs.
-    """
-    try:
-        result = robinhood_client.stocks.find_instrument_data(ticker)
-        return bool(result)
-    except Exception:
-        return False
-
-
-def is_valid_ticker(ticker: str, exclude_f: bool, exclude_y: bool, exclude_q: bool) -> bool:
-    """
-    Basic string-based validation for filtering ticker suffixes.
-
-    Parameters:
-        ticker (str): The stock ticker symbol.
-        exclude_f (bool): Exclude tickers ending in 'F'.
-        exclude_y (bool): Exclude tickers ending in 'Y'.
-        exclude_q (bool): Exclude tickers ending in 'Q'.
-
-    Returns:
-        bool: True if ticker passes all filters, False otherwise.
-    """
-    ticker = ticker.upper()
-
-    if exclude_f and ticker.endswith("F"):
-        return False
-    if exclude_y and (len(ticker) == 5 and ticker.endswith("Y")):
-        return False
-    if exclude_q and ticker.endswith("Q"):
-        return False
-
-    return True
